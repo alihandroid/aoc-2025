@@ -1,20 +1,22 @@
+use std::cmp::PartialEq;
+
 advent_of_code::solution!(1);
+
+#[derive(Eq, PartialEq)]
+enum Direction {
+    Left,
+    Right,
+}
 
 pub fn part_one(input: &str) -> Option<u64> {
     let mut position = 50;
     let mut zero_count = 0;
-    for line in input.split('\n') {
-        if (line.len() == 0) {
-            continue;
+    for (direction, number) in parse(input) {
+        position = match direction {
+            Direction::Left => position - number,
+            Direction::Right => position + number,
         }
-        let first_char = line.as_bytes()[0];
-        let number = line[1..].parse::<i64>().unwrap();
-
-        if first_char == b'L' {
-            position = (position - number).rem_euclid(100);
-        } else {
-            position = (position + number).rem_euclid(100);
-        }
+        .rem_euclid(100);
 
         if position == 0 {
             zero_count += 1;
@@ -25,6 +27,18 @@ pub fn part_one(input: &str) -> Option<u64> {
 
 pub fn part_two(input: &str) -> Option<u64> {
     None
+}
+
+fn parse(input: &str) -> impl Iterator<Item = (Direction, i64)> + '_ {
+    input.lines().filter(|line| !line.is_empty()).map(|line| {
+        let direction = if line.as_bytes()[0] == b'L' {
+            Direction::Left
+        } else {
+            Direction::Right
+        };
+        let number = line[1..].parse::<i64>().unwrap();
+        (direction, number)
+    })
 }
 
 #[cfg(test)]
