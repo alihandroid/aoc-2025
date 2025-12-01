@@ -53,12 +53,15 @@ pub fn part_two(input: &str) -> Option<u64> {
 
 fn parse(input: &str) -> impl Iterator<Item = (Direction, u64)> + '_ {
     input[..input.len() - 2].lines().map(|line| {
-        let direction = if line.as_bytes()[0] == b'L' {
+        let mut chars = line.bytes();
+        let direction = if chars.next().unwrap() == b'L' {
             Direction::Left
         } else {
             Direction::Right
         };
-        let number = line[1..].parse::<u64>().unwrap();
+
+        let number = chars.fold(0u64, |acc, b| acc * 10 + (b - b'0') as u64);
+
         (direction, number)
     })
 }
