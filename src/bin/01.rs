@@ -52,7 +52,7 @@ pub fn part_two(input: &str) -> Option<u64> {
 }
 
 fn parse(input: &str) -> impl Iterator<Item = (Direction, u64)> + '_ {
-    input[..input.len() - 2].lines().map(|line| {
+    input.lines().map(|line| {
         let mut chars = line.bytes();
         let direction = if chars.next().unwrap() == b'L' {
             Direction::Left
