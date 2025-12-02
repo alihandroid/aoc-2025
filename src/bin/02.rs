@@ -13,7 +13,19 @@ pub fn part_one(input: &str) -> Option<u64> {
 }
 
 pub fn part_two(input: &str) -> Option<u64> {
-    None
+    let mut sum = 0;
+    for id_range in parse(input) {
+        for id in id_range {
+            let num_digits = id.ilog10() as u64 + 1;
+            for i in 2..=num_digits {
+                if is_invalid_n_repeats(id, num_digits, i) {
+                    sum += id;
+                    break;
+                }
+            }
+        }
+    }
+    Some(sum)
 }
 
 fn is_invalid(id: u64) -> bool {
@@ -23,6 +35,28 @@ fn is_invalid(id: u64) -> bool {
     let first_half = id / half_10;
     let second_half = id % half_10;
     first_half == second_half
+}
+
+fn is_invalid_n_repeats(mut id: u64, num_digits: u64, n: u64) -> bool {
+    if num_digits % n != 0 {
+        return false;
+    }
+
+    let part = num_digits / n;
+    let part_10 = 10_u64.pow(part as u32);
+
+    let mut prev_remainder = id % part_10;
+    id /= part_10;
+    let mut remainder;
+    for _ in 1..n {
+        remainder = id % part_10;
+        if remainder != prev_remainder {
+            return false;
+        }
+        id /= part_10;
+        prev_remainder = remainder;
+    }
+    true
 }
 
 fn parse(input: &str) -> impl Iterator<Item = impl Iterator<Item = u64> + '_> + '_ {
@@ -47,6 +81,6 @@ mod tests {
     #[test]
     fn test_part_two() {
         let result = part_two(&advent_of_code::template::read_file("examples", DAY));
-        assert_eq!(result, None);
+        assert_eq!(result, Some(4174379265));
     }
 }
