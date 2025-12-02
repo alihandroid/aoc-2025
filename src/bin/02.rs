@@ -17,8 +17,8 @@ pub fn part_two(input: &str) -> Option<u64> {
     for id_range in parse(input) {
         for id in id_range {
             let num_digits = id.ilog10() as u64 + 1;
-            for i in 2..=num_digits {
-                if is_invalid_n_repeats(id, num_digits, i) {
+            for &factor in FACTORS[num_digits as usize-1] {
+                if is_invalid_n_repeats(id, num_digits, factor) {
                     sum += id;
                     break;
                 }
@@ -27,6 +27,30 @@ pub fn part_two(input: &str) -> Option<u64> {
     }
     Some(sum)
 }
+
+// we can pre-compute factors
+const FACTORS: &[&[u64]] = &[
+    &[],                // 1
+    &[2],               // 2
+    &[3],               // 3
+    &[2, 4],            // 4
+    &[5],               // 5
+    &[2, 3, 6],         // 6
+    &[7],               // 7
+    &[2, 4, 8],         // 8
+    &[3, 9],            // 9
+    &[2, 5, 10],        // 10
+    &[11],              // 11
+    &[2, 3, 4, 6, 12],  // 12
+    &[13],              // 13
+    &[2, 7, 14],        // 14
+    &[3, 5, 15],        // 15
+    &[2, 4, 8, 16],     // 16
+    &[17],              // 17
+    &[2, 3, 6, 9, 18],  // 18
+    &[19],              // 19
+    &[2, 4, 5, 10, 20], // 20
+];
 
 fn is_invalid(id: u64) -> bool {
     let num_digits = id.ilog10() as u64 + 1;
@@ -38,10 +62,6 @@ fn is_invalid(id: u64) -> bool {
 }
 
 fn is_invalid_n_repeats(mut id: u64, num_digits: u64, n: u64) -> bool {
-    if num_digits % n != 0 {
-        return false;
-    }
-
     let part = num_digits / n;
     let part_10 = 10_u64.pow(part as u32);
 
