@@ -1,35 +1,37 @@
+use rayon::prelude::*;
+use std::ops::RangeInclusive;
+
 advent_of_code::solution!(2);
 
 pub fn part_one(input: &str) -> Option<u64> {
-    let mut sum = 0;
-    for id_range in parse(input) {
-        for id in id_range {
-            if is_invalid(id) {
-                sum += id;
-            }
-        }
-    }
+    let sum = par_parse(input)
+        .map(|id_range| id_range.into_par_iter().filter(is_invalid).sum::<u64>())
+        .sum();
     Some(sum)
 }
 
 pub fn part_two(input: &str) -> Option<u64> {
-    let mut sum = 0;
-    for id_range in parse(input) {
-        for id in id_range {
-            let num_digits = id.ilog10() as u64 + 1;
-            for &factor in FACTORS[num_digits as usize-1] {
-                if is_invalid_n_repeats(id, num_digits, factor) {
-                    sum += id;
-                    break;
-                }
-            }
-        }
-    }
+    let sum = par_parse(input)
+        .map(|id_range| {
+            id_range
+                .into_par_iter()
+                .filter(|id| {
+                    let num_digits = id.ilog10() as u64 + 1;
+                    for &factor in NON_ONE_FACTORS[num_digits as usize - 1] {
+                        if is_invalid_n_repeats(id, num_digits, factor) {
+                            return true;
+                        }
+                    }
+                    false
+                })
+                .sum::<u64>()
+        })
+        .sum();
     Some(sum)
 }
 
 // we can pre-compute factors
-const FACTORS: &[&[u64]] = &[
+const NON_ONE_FACTORS: &[&[u64]] = &[
     &[],                // 1
     &[2],               // 2
     &[3],               // 3
@@ -52,7 +54,7 @@ const FACTORS: &[&[u64]] = &[
     &[2, 4, 5, 10, 20], // 20
 ];
 
-fn is_invalid(id: u64) -> bool {
+fn is_invalid(id: &u64) -> bool {
     let num_digits = id.ilog10() as u64 + 1;
     let half = num_digits / 2;
     let half_10 = 10_u64.pow(half as u32);
@@ -61,7 +63,8 @@ fn is_invalid(id: u64) -> bool {
     first_half == second_half
 }
 
-fn is_invalid_n_repeats(mut id: u64, num_digits: u64, n: u64) -> bool {
+fn is_invalid_n_repeats(id: &u64, num_digits: u64, n: u64) -> bool {
+    let mut id = *id;
     let part = num_digits / n;
     let part_10 = 10_u64.pow(part as u32);
 
@@ -79,8 +82,8 @@ fn is_invalid_n_repeats(mut id: u64, num_digits: u64, n: u64) -> bool {
     true
 }
 
-fn parse(input: &str) -> impl Iterator<Item = impl Iterator<Item = u64> + '_> + '_ {
-    input.trim_end().split(',').map(|line| {
+fn par_parse(input: &str) -> impl ParallelIterator<Item = RangeInclusive<u64>> + '_ {
+    input.trim_end().par_split(',').map(|line| {
         let dash_index = line.find('-').unwrap();
         let first = line[0..dash_index].parse::<u64>().unwrap();
         let second = line[dash_index + 1..].parse::<u64>().unwrap();
