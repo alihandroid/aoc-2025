@@ -27,14 +27,8 @@ pub fn part_two(input: &str) -> Option<u64> {
     let mut map = parse(input);
     let mut num_accessible_rolls = 0;
 
-    let mut new_map = TpMap {
-        has_tp: map.has_tp.clone(),
-        width: map.width,
-        height: map.height,
-    };
-
     loop {
-        let mut has_removed_tp = false;
+        let mut positions_to_remove = Vec::new();
 
         for y in 0..map.height {
             for x in 0..map.width {
@@ -43,18 +37,19 @@ pub fn part_two(input: &str) -> Option<u64> {
                 }
 
                 if is_accessible(&map, x, y) {
-                    num_accessible_rolls += 1;
-                    new_map.has_tp[y][x] = false;
-                    has_removed_tp = true;
+                    positions_to_remove.push((x, y));
                 }
             }
         }
 
-        if !has_removed_tp {
+        if positions_to_remove.is_empty() {
             break;
         }
 
-        map.has_tp = new_map.has_tp.clone();
+        for (x, y) in positions_to_remove {
+            map.has_tp[y][x] = false;
+            num_accessible_rolls += 1;
+        }
     }
 
     Some(num_accessible_rolls)
@@ -62,24 +57,20 @@ pub fn part_two(input: &str) -> Option<u64> {
 
 fn is_accessible(map: &TpMap, x: usize, y: usize) -> bool {
     let mut count = 0;
-    for d_y in -1..=1 {
-        for d_x in -1..=1 {
-            if d_y == 0 && d_x == 0 {
+
+    let start_y = y.saturating_sub(1);
+    let end_y = (y + 1).min(map.height - 1);
+    let start_x = x.saturating_sub(1);
+    let end_x = (x + 1).min(map.width - 1);
+
+    for new_y in start_y..=end_y {
+        for new_x in start_x..=end_x {
+            if new_y == y && new_x == x || !map.has_tp[new_y][new_x] {
                 continue;
             }
-
-            let new_y = y as i32 + d_y;
-            let new_x = x as i32 + d_x;
-
-            if new_y < 0 || new_y >= map.height as i32 || new_x < 0 || new_x >= map.width as i32 {
-                continue;
-            }
-
-            if map.has_tp[new_y as usize][new_x as usize] {
-                count += 1;
-                if count >= 4 {
-                    return false;
-                }
+            count += 1;
+            if count >= 4 {
+                return false;
             }
         }
     }
