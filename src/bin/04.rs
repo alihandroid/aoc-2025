@@ -24,7 +24,40 @@ pub fn part_one(input: &str) -> Option<u64> {
 }
 
 pub fn part_two(input: &str) -> Option<u64> {
-    None
+    let mut map = parse(input);
+    let mut num_accessible_rolls = 0;
+
+    let mut new_map = TpMap {
+        has_tp: map.has_tp.clone(),
+        width: map.width,
+        height: map.height,
+    };
+
+    loop {
+        let mut has_removed_tp = false;
+
+        for y in 0..map.height {
+            for x in 0..map.width {
+                if !map.has_tp[y][x] {
+                    continue;
+                }
+
+                if is_accessible(&map, x, y) {
+                    num_accessible_rolls += 1;
+                    new_map.has_tp[y][x] = false;
+                    has_removed_tp = true;
+                }
+            }
+        }
+
+        if !has_removed_tp {
+            break;
+        }
+
+        map.has_tp = new_map.has_tp.clone();
+    }
+
+    Some(num_accessible_rolls)
 }
 
 fn is_accessible(map: &TpMap, x: usize, y: usize) -> bool {
@@ -80,6 +113,6 @@ mod tests {
     #[test]
     fn test_part_two() {
         let result = part_two(&advent_of_code::template::read_file("examples", DAY));
-        assert_eq!(result, None);
+        assert_eq!(result, Some(43));
     }
 }
