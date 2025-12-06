@@ -6,13 +6,25 @@ struct ParsedInput {
 }
 
 pub fn part_one(input: &str) -> Option<u64> {
-    let ParsedInput { ranges, ids } = parse(input);
-    let result = ids.into_iter().filter(|id| is_fresh(&ranges, id)).count() as u64;
-    Some(result)
+    let ParsedInput { mut ranges, ids } = parse(input);
+    let merged_ranges = merge_ranges(&mut ranges);
+    let result = ids
+        .into_iter()
+        .filter(|id| is_fresh(&merged_ranges, id))
+        .count();
+    Some(result as u64)
 }
 pub fn part_two(input: &str) -> Option<u64> {
     let ParsedInput { mut ranges, .. } = parse(input);
 
+    let result = merge_ranges(&mut ranges)
+        .iter()
+        .map(|&(start, end)| end - start + 1)
+        .sum();
+    Some(result)
+}
+
+fn merge_ranges(ranges: &mut [(u64, u64)]) -> Vec<(u64, u64)> {
     ranges.sort();
     let mut ranges_iter = ranges.iter();
     let mut merged_ranges: Vec<(u64, u64)> = vec![*ranges_iter.next().unwrap()];
@@ -25,12 +37,7 @@ pub fn part_two(input: &str) -> Option<u64> {
             merged_ranges.push((start, end));
         }
     }
-
-    let result = merged_ranges
-        .iter()
-        .map(|&(start, end)| end - start + 1)
-        .sum();
-    Some(result)
+    merged_ranges
 }
 
 fn is_fresh(ranges: &[(u64, u64)], ids: &u64) -> bool {
