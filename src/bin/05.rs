@@ -11,7 +11,26 @@ pub fn part_one(input: &str) -> Option<u64> {
     Some(result)
 }
 pub fn part_two(input: &str) -> Option<u64> {
-    None
+    let ParsedInput { mut ranges, .. } = parse(input);
+
+    ranges.sort();
+    let mut ranges_iter = ranges.iter();
+    let mut merged_ranges: Vec<(u64, u64)> = vec![*ranges_iter.next().unwrap()];
+    for &(start, end) in ranges_iter {
+        let (prev_start, prev_end) = *merged_ranges.last().unwrap();
+        if start >= prev_start && start <= prev_end {
+            merged_ranges.pop();
+            merged_ranges.push((prev_start, prev_end.max(end)));
+        } else {
+            merged_ranges.push((start, end));
+        }
+    }
+
+    let result = merged_ranges
+        .iter()
+        .map(|&(start, end)| end - start + 1)
+        .sum();
+    Some(result)
 }
 
 fn is_fresh(ranges: &[(u64, u64)], ids: &u64) -> bool {
@@ -21,6 +40,7 @@ fn is_fresh(ranges: &[(u64, u64)], ids: &u64) -> bool {
 }
 
 fn parse(input: &str) -> ParsedInput {
+    let input = input.replace("\r\n", "\n");
     let sections: Vec<&str> = input.split("\n\n").collect();
 
     let [ranges_str, ids_str] = sections[..] else {
@@ -59,6 +79,6 @@ mod tests {
     #[test]
     fn test_part_two() {
         let result = part_two(&advent_of_code::template::read_file("examples", DAY));
-        assert_eq!(result, None);
+        assert_eq!(result, Some(14));
     }
 }
