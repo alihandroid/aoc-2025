@@ -37,7 +37,7 @@ pub fn part_one(input: &str) -> Option<u64> {
     let ParsedInput {
         numbers,
         operations,
-    } = parse(input);
+    } = parse_part_one(input);
 
     let result: u64 = (0..numbers.len())
         .map(|i| operations[i].run(&numbers[i]))
@@ -47,10 +47,19 @@ pub fn part_one(input: &str) -> Option<u64> {
 }
 
 pub fn part_two(input: &str) -> Option<u64> {
-    None
+    let ParsedInput {
+        numbers,
+        operations,
+    } = parse_part_two(input);
+
+    let result: u64 = (0..numbers.len())
+        .map(|i| operations[i].run(&numbers[i]))
+        .sum();
+
+    Some(result)
 }
 
-fn parse(input: &str) -> ParsedInput {
+fn parse_part_one(input: &str) -> ParsedInput {
     let mut lines = input.lines().collect::<Vec<_>>();
     let operations_line = lines.pop().unwrap();
 
@@ -65,14 +74,46 @@ fn parse(input: &str) -> ParsedInput {
 
     // transpose
     let numbers = (0..numbers[0].len())
+        .map(|i| numbers.iter().map(|arr| arr[i]).collect::<Vec<_>>())
+        .collect::<Vec<_>>();
+
+    let operations = operations_line
+        .split_ascii_whitespace()
+        .map(|s| s.parse().unwrap())
+        .collect::<Vec<_>>();
+
+    ParsedInput {
+        numbers,
+        operations,
+    }
+}
+
+fn parse_part_two(input: &str) -> ParsedInput {
+    let mut lines = input.lines().collect::<Vec<_>>();
+    let operations_line = lines.pop().unwrap();
+
+    // transpose
+    let numbers = (0..lines[0].len())
         .map(|i| {
-            numbers
+            let s = lines
                 .iter()
-                .map(|arr| arr[i])
+                .map(|arr| arr.as_bytes()[i] as char)
+                .collect::<String>();
+            s.trim().to_owned()
+        })
+        .collect::<Vec<_>>();
+
+    // parse
+    let numbers = numbers
+        .split(|s| s.len() == 0)
+        .map(|x| {
+            x.into_iter()
+                .map(|s| s.parse::<u64>().unwrap())
                 .collect::<Vec<_>>()
         })
         .collect::<Vec<_>>();
 
+    // same as part 1
     let operations = operations_line
         .split_ascii_whitespace()
         .map(|s| s.parse().unwrap())
@@ -97,6 +138,6 @@ mod tests {
     #[test]
     fn test_part_two() {
         let result = part_two(&advent_of_code::template::read_file("examples", DAY));
-        assert_eq!(result, None);
+        assert_eq!(result, Some(3263827));
     }
 }
