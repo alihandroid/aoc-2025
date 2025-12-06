@@ -39,9 +39,7 @@ pub fn part_one(input: &str) -> Option<u64> {
         operations,
     } = parse_part_one(input);
 
-    let result: u64 = (0..numbers.len())
-        .map(|i| operations[i].run(&numbers[i]))
-        .sum();
+    let result = calculate(numbers, operations);
 
     Some(result)
 }
@@ -52,11 +50,17 @@ pub fn part_two(input: &str) -> Option<u64> {
         operations,
     } = parse_part_two(input);
 
-    let result: u64 = (0..numbers.len())
-        .map(|i| operations[i].run(&numbers[i]))
-        .sum();
+    let result = calculate(numbers, operations);
 
     Some(result)
+}
+
+fn calculate(numbers: Vec<Vec<u64>>, operations: Vec<Operation>) -> u64 {
+    numbers
+        .iter()
+        .zip(operations)
+        .map(|(nums, op)| op.run(nums))
+        .sum()
 }
 
 fn parse_part_one(input: &str) -> ParsedInput {
