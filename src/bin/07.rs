@@ -32,7 +32,34 @@ pub fn part_one(input: &str) -> Option<u64> {
 }
 
 pub fn part_two(input: &str) -> Option<u64> {
-    None
+    let lines = input.lines().collect::<Vec<_>>();
+    let width = lines[0].len();
+    let mut beams = vec![0; width];
+    let start_column = lines[0].find('S').unwrap();
+    beams[start_column] = 1;
+    let mut next_beams;
+    let mut timeline_count = 1;
+
+    for line in lines.into_iter().skip(1) {
+        next_beams = vec![0; width];
+
+        for (i, &ch) in line.as_bytes().iter().enumerate() {
+            if beams[i] == 0 {
+                continue;
+            }
+            if ch == b'^' {
+                next_beams[i - 1] += beams[i];
+                next_beams[i + 1] += beams[i];
+                timeline_count += beams[i];
+            } else {
+                next_beams[i] += beams[i];
+            }
+        }
+
+        beams = next_beams;
+    }
+
+    Some(timeline_count)
 }
 
 #[cfg(test)]
@@ -48,6 +75,6 @@ mod tests {
     #[test]
     fn test_part_two() {
         let result = part_two(&advent_of_code::template::read_file("examples", DAY));
-        assert_eq!(result, None);
+        assert_eq!(result, Some(40));
     }
 }
