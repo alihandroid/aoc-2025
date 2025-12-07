@@ -9,7 +9,7 @@ pub fn part_one(input: &str) -> Option<u64> {
     let mut next_beams;
     let mut split_count = 0;
 
-    for line in lines.into_iter().skip(1) {
+    for line in lines.into_iter().step_by(2).skip(1) {
         next_beams = vec![false; width];
 
         for (i, &ch) in line.as_bytes().iter().enumerate() {
@@ -40,7 +40,7 @@ pub fn part_two(input: &str) -> Option<u64> {
     let mut next_beams;
     let mut timeline_count = 1;
 
-    for line in lines.into_iter().skip(1) {
+    for line in lines.into_iter().step_by(2).skip(1) {
         next_beams = vec![0; width];
 
         for (i, &ch) in line.as_bytes().iter().enumerate() {
