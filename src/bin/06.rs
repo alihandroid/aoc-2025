@@ -109,9 +109,9 @@ fn parse_part_two(input: &str) -> ParsedInput {
 
     // parse
     let numbers = numbers
-        .split(|s| s.len() == 0)
+        .split(|s| s.is_empty())
         .map(|x| {
-            x.into_iter()
+            x.iter()
                 .map(|s| s.parse::<u64>().unwrap())
                 .collect::<Vec<_>>()
         })

@@ -12,7 +12,7 @@ pub fn part_one(input: &str) -> Option<u64> {
     for line in lines.into_iter().skip(1) {
         next_beams = vec![false; width];
 
-        for (i, &ch) in line.as_bytes().into_iter().enumerate() {
+        for (i, &ch) in line.as_bytes().iter().enumerate() {
             if !beams[i] {
                 continue;
             }
