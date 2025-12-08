@@ -1,4 +1,5 @@
-use std::hint::unreachable_unchecked;
+use std::cmp::Reverse;
+use std::collections::BinaryHeap;
 
 advent_of_code::solution!(8);
 
@@ -11,12 +12,14 @@ struct Point {
 }
 
 impl Point {
+    #[inline]
     fn new(x: i64, y: i64, z: i64) -> Point {
         Point { x, y, z }
     }
 
     /// Calculate squared distance to avoid expensive sqrt operation.
     /// Since sqrt preserves ordering, comparing squared distances gives the same result.
+    #[inline]
     fn distance_squared(&self, p: &Point) -> i64 {
         let dx = self.x - p.x;
         let dy = self.y - p.y;
@@ -43,6 +46,7 @@ impl UnionFind {
         }
     }
 
+    #[inline]
     pub fn find(&mut self, x: usize) -> usize {
         if self.parent[x] != x {
             self.parent[x] = self.find(self.parent[x]);
@@ -50,6 +54,7 @@ impl UnionFind {
         self.parent[x]
     }
 
+    #[inline]
     pub fn union(&mut self, x: usize, y: usize) -> bool {
         let root_x = self.find(x);
         let root_y = self.find(y);
@@ -79,10 +84,12 @@ impl UnionFind {
         true
     }
 
+    #[inline]
     pub fn size_of(&self, x: usize) -> usize {
         self.size[x]
     }
 
+    #[inline]
     pub fn count_components(&self) -> usize {
         self.components
     }
@@ -97,62 +104,87 @@ impl UnionFind {
 }
 
 pub fn part_one(input: &str) -> Option<u64> {
-    let points = parse(input).collect::<Vec<_>>();
-    let distances = calculate_distances(&points);
+    let points = parse(input);
+    let distances = calculate_distances_partial(&points, NUM_CONNECTIONS);
     let mut uf = UnionFind::new(points.len());
 
-    for (_distance, i, j) in distances.iter().take(NUM_CONNECTIONS) {
-        uf.union(*i, *j);
+    for (_distance, i, j) in distances {
+        uf.union(i, j);
     }
 
-    let mut sizes = uf.roots().map(|root| uf.size_of(root) as u64).collect::<Vec<_>>();
+    let mut sizes: Vec<u64> = uf.roots().map(|root| uf.size_of(root) as u64).collect();
 
-    sizes.sort_unstable_by(|a,b|b.cmp(a));
+    sizes.select_nth_unstable_by(2, |a, b| b.cmp(a));
 
     let result = sizes[0] * sizes[1] * sizes[2];
     Some(result)
 }
 
 pub fn part_two(input: &str) -> Option<u64> {
-    let points = parse(input).collect::<Vec<_>>();
+    let points = parse(input);
     let distances = calculate_distances(&points);
     let mut uf = UnionFind::new(points.len());
 
-    for (_distance, i, j) in distances {
+    let mut heap = distances
+        .into_iter()
+        .map(Reverse)
+        .collect::<BinaryHeap<_>>();
+
+    while let Some(Reverse((_distance, i, j))) = heap.pop() {
         uf.union(i, j);
         if uf.count_components() == 1 {
             return Some((points[i].x * points[j].x) as u64);
         }
     }
 
-    unreachable!();
+    unreachable!()
 }
 
-fn calculate_distances(points: &Vec<Point>) -> Vec<(i64, usize, usize)> {
-    let mut distances = Vec::new();
-    // calculate distances between every unordered pair of points
+fn calculate_distances(points: &[Point]) -> Vec<(i64, usize, usize)> {
+    let mut distances = Vec::with_capacity((points.len() * (points.len() - 1)) / 2);
+
     for i in 0..points.len() {
         for j in i + 1..points.len() {
             let distance = points[i].distance_squared(&points[j]);
             distances.push((distance, i, j));
         }
     }
-    distances.sort();
+
     distances
 }
 
-fn parse(input: &str) -> impl Iterator<Item = Point> {
-    input.lines().map(|line| {
-        let [x, y, z, ..] = line
-            .split(',')
-            .map(|x| x.parse().unwrap())
-            .collect::<Vec<i64>>()[..]
-        else {
-            unreachable!();
-        };
+fn calculate_distances_partial(points: &[Point], limit: usize) -> Vec<(i64, usize, usize)> {
+    let mut heap = BinaryHeap::with_capacity(limit + 1);
 
-        Point::new(x, y, z)
-    })
+    for i in 0..points.len() {
+        for j in i + 1..points.len() {
+            let distance = points[i].distance_squared(&points[j]);
+
+            if heap.len() < limit {
+                heap.push((distance, i, j));
+            } else if let Some(&(max_dist, _, _)) = heap.peek()
+                && distance < max_dist
+            {
+                heap.pop();
+                heap.push((distance, i, j));
+            }
+        }
+    }
+
+    let mut result = heap.into_vec();
+    result.sort_unstable();
+    result
+}
+
+fn parse(input: &str) -> Vec<Point> {
+    input
+        .lines()
+        .map(|line| {
+            let coords: Vec<i64> = line.split(',').map(|x| x.parse().unwrap()).collect();
+
+            Point::new(coords[0], coords[1], coords[2])
+        })
+        .collect()
 }
 
 #[cfg(test)]
