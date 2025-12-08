@@ -5,22 +5,22 @@ advent_of_code::solution!(8);
 const NUM_CONNECTIONS: usize = if cfg!(test) { 10 } else { 1000 };
 
 struct Point {
-    x: u64,
-    y: u64,
-    z: u64,
+    pub x: i64,
+    pub y: i64,
+    pub z: i64,
 }
 
 impl Point {
-    fn new(x: u64, y: u64, z: u64) -> Point {
+    fn new(x: i64, y: i64, z: i64) -> Point {
         Point { x, y, z }
     }
 
     /// Calculate squared distance to avoid expensive sqrt operation.
     /// Since sqrt preserves ordering, comparing squared distances gives the same result.
-    fn distance_squared(&self, p: &Point) -> u64 {
-        let dx = self.x.abs_diff(p.x);
-        let dy = self.y.abs_diff(p.y);
-        let dz = self.z.abs_diff(p.z);
+    fn distance_squared(&self, p: &Point) -> i64 {
+        let dx = self.x - p.x;
+        let dy = self.y - p.y;
+        let dz = self.z - p.z;
         dx * dx + dy * dy + dz * dz
     }
 }
@@ -30,6 +30,7 @@ pub struct UnionFind {
     parent: Vec<usize>,
     rank: Vec<usize>,
     size: Vec<usize>,
+    components: usize,
 }
 
 impl UnionFind {
@@ -38,6 +39,7 @@ impl UnionFind {
             parent: (0..n).collect(),
             rank: vec![0; n],
             size: vec![1; n],
+            components: n,
         }
     }
 
@@ -73,11 +75,16 @@ impl UnionFind {
             }
         }
 
+        self.components -= 1;
         true
     }
 
     pub fn size_of(&self, x: usize) -> usize {
         self.size[x]
+    }
+
+    pub fn count_components(&self) -> usize {
+        self.components
     }
 
     pub fn roots(&self) -> impl Iterator<Item = usize> {
@@ -91,17 +98,7 @@ impl UnionFind {
 
 pub fn part_one(input: &str) -> Option<u64> {
     let points = parse(input).collect::<Vec<_>>();
-
-    let mut distances = Vec::new();
-    // calculate distances between every unordered pair of points
-    for i in 0..points.len() {
-        for j in i + 1..points.len() {
-            let distance = points[i].distance_squared(&points[j]);
-            distances.push((distance, i, j));
-        }
-    }
-    distances.sort();
-
+    let distances = calculate_distances(&points);
     let mut uf = UnionFind::new(points.len());
 
     for (_distance, i, j) in distances.iter().take(NUM_CONNECTIONS) {
@@ -117,7 +114,31 @@ pub fn part_one(input: &str) -> Option<u64> {
 }
 
 pub fn part_two(input: &str) -> Option<u64> {
-    None
+    let points = parse(input).collect::<Vec<_>>();
+    let distances = calculate_distances(&points);
+    let mut uf = UnionFind::new(points.len());
+
+    for (_distance, i, j) in distances {
+        uf.union(i, j);
+        if uf.count_components() == 1 {
+            return Some((points[i].x * points[j].x) as u64);
+        }
+    }
+
+    unreachable!();
+}
+
+fn calculate_distances(points: &Vec<Point>) -> Vec<(i64, usize, usize)> {
+    let mut distances = Vec::new();
+    // calculate distances between every unordered pair of points
+    for i in 0..points.len() {
+        for j in i + 1..points.len() {
+            let distance = points[i].distance_squared(&points[j]);
+            distances.push((distance, i, j));
+        }
+    }
+    distances.sort();
+    distances
 }
 
 fn parse(input: &str) -> impl Iterator<Item = Point> {
@@ -125,12 +146,9 @@ fn parse(input: &str) -> impl Iterator<Item = Point> {
         let [x, y, z, ..] = line
             .split(',')
             .map(|x| x.parse().unwrap())
-            .collect::<Vec<u64>>()[..]
+            .collect::<Vec<i64>>()[..]
         else {
-            // SAFETY: nuh-uh 🗿
-            unsafe {
-                unreachable_unchecked();
-            }
+            unreachable!();
         };
 
         Point::new(x, y, z)
@@ -150,6 +168,6 @@ mod tests {
     #[test]
     fn test_part_two() {
         let result = part_two(&advent_of_code::template::read_file("examples", DAY));
-        assert_eq!(result, None);
+        assert_eq!(result, Some(25272));
     }
 }
