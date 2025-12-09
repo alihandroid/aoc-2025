@@ -3,14 +3,13 @@ advent_of_code::solution!(9);
 pub fn part_one(input: &str) -> Option<u64> {
     let points = parse(input).collect::<Vec<_>>();
 
-    (0..points.len())
-        .flat_map(|i| {
-            let points = &points;
-            (i + 1..points.len()).map(move |j| {
-                let (x1, y1) = points[i];
-                let (x2, y2) = points[j];
-                (x2.abs_diff(x1) + 1) * (y2.abs_diff(y1) + 1)
-            })
+    points
+        .iter().enumerate()
+        .flat_map(|(i, &(x1, y1))| {
+            points[i + 1..].iter()
+                .map(move |&(x2, y2)| {
+                    (x2.abs_diff(x1) + 1) * (y2.abs_diff(y1) + 1)
+                })
         })
         .max()
 }
