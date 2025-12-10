@@ -1,11 +1,128 @@
 advent_of_code::solution!(10);
 
+#[derive(Debug)]
+struct ParsedInput {
+    parsed_lines: Vec<ParsedLine>,
+}
+
+#[derive(Debug)]
+struct ParsedLine {
+    light_diagram: Vec<bool>,
+    wiring_schematics: Vec<Vec<u64>>,
+    joltage_requirements: Vec<u64>,
+}
+
 pub fn part_one(input: &str) -> Option<u64> {
-    None
+    let parsed_input = parse(input);
+    let result = parsed_input
+        .parsed_lines
+        .into_iter()
+        .map(find_minimum_switches)
+        .sum::<u32>();
+
+    Some(result as u64)
 }
 
 pub fn part_two(input: &str) -> Option<u64> {
     None
+}
+
+fn find_minimum_switches(parsed_line: ParsedLine) -> u32 {
+    let ParsedLine {
+        light_diagram,
+        wiring_schematics,
+        ..
+    } = parsed_line;
+
+    (0..1_u64 << wiring_schematics.len())
+        .filter_map(|bitmask| {
+            if produces_target_diagram(bitmask, &wiring_schematics, &light_diagram) {
+                Some(bitmask.count_ones())
+            } else {
+                None
+            }
+        })
+        .min()
+        .unwrap()
+}
+
+fn produces_target_diagram(
+    bitmask: u64,
+    wiring_schematics: &[Vec<u64>],
+    target_diagram: &[bool],
+) -> bool {
+    let mut diagram = vec![false; target_diagram.len()];
+
+    for (i, wiring_schematic) in wiring_schematics.iter().enumerate() {
+        if (bitmask & (1 << i)) != 0 {
+            toggle_lights(&mut diagram, wiring_schematic);
+        }
+    }
+
+    diagram == target_diagram
+}
+
+fn toggle_lights(diagram: &mut [bool], light_indices: &[u64]) {
+    for &light_index in light_indices {
+        let index = light_index as usize;
+        diagram[index] = !diagram[index];
+    }
+}
+
+fn parse(input: &str) -> ParsedInput {
+    let parsed_lines = input.lines().map(parse_line).collect();
+    ParsedInput { parsed_lines }
+}
+
+fn parse_line(line: &str) -> ParsedLine {
+    let light_diagram = parse_light_diagram(line);
+    let wiring_schematics = parse_wiring_schematics(line);
+    let joltage_requirements = parse_joltage_requirements(line);
+
+    ParsedLine {
+        light_diagram,
+        wiring_schematics,
+        joltage_requirements,
+    }
+}
+
+fn parse_light_diagram(line: &str) -> Vec<bool> {
+    let start = line.find('[').unwrap();
+    let end = line.find(']').unwrap();
+
+    line[start + 1..end]
+        .bytes()
+        .map(|byte| byte == b'#')
+        .collect()
+}
+
+fn parse_wiring_schematics(line: &str) -> Vec<Vec<u64>> {
+    let bracket_end = line.find(']').unwrap();
+    let schematics_section = &line[bracket_end + 1..];
+
+    schematics_section
+        .split(')')
+        .filter(|section| section.contains('('))
+        .map(parse_single_schematic)
+        .collect()
+}
+
+fn parse_single_schematic(section: &str) -> Vec<u64> {
+    section
+        .trim_start_matches([' ','('])
+        .split(',')
+        .map(|number_str| number_str.trim().parse().unwrap())
+        .collect()
+}
+
+fn parse_joltage_requirements(line: &str) -> Vec<u64> {
+    let start = line.find('{').unwrap();
+    let end = line.find('}').unwrap();
+
+    line[start + 1..end]
+        .split(',')
+        .map(|number_str| number_str.trim().parse().unwrap())
+        .collect()
 }
 
 #[cfg(test)]
@@ -15,7 +132,7 @@ mod tests {
     #[test]
     fn test_part_one() {
         let result = part_one(&advent_of_code::template::read_file("examples", DAY));
-        assert_eq!(result, None);
+        assert_eq!(result, Some(7));
     }
 
     #[test]
