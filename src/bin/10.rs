@@ -1,3 +1,4 @@
+use rayon::prelude::*;
 use z3::ast::Int;
 use z3::{Optimize, SatResult};
 
@@ -19,7 +20,7 @@ pub fn part_one(input: &str) -> Option<u64> {
     let parsed_input = parse(input);
     let result = parsed_input
         .parsed_lines
-        .into_iter()
+        .into_par_iter()
         .map(find_minimum_switches)
         .sum::<u32>();
 
@@ -30,7 +31,7 @@ pub fn part_two(input: &str) -> Option<u64> {
     let parsed_input = parse(input);
     let result: u64 = parsed_input
         .parsed_lines
-        .into_iter()
+        .into_par_iter()
         .map(find_minimum_button_presses_z3)
         .sum();
 
