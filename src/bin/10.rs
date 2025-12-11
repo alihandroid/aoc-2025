@@ -66,48 +66,20 @@ fn find_minimum_button_presses_z3(parsed_line: ParsedLine) -> u64 {
             }
         }
 
-        let counter_sum = if counter_sum_terms.is_empty() {
-            Int::from_i64(0)
-        } else if counter_sum_terms.len() == 1 {
-            counter_sum_terms[0].clone()
-        } else {
-            Int::add(&counter_sum_terms.to_vec())
-        };
-
+        let counter_sum = Int::add(&counter_sum_terms);
         let target = Int::from_i64(target_joltage as i64);
         optimizer.assert(&counter_sum.eq(&target));
     }
 
-    let total_presses = if button_presses.is_empty() {
-        Int::from_i64(0)
-    } else if button_presses.len() == 1 {
-        button_presses[0].clone()
-    } else {
-        Int::add(&button_presses.iter().collect::<Vec<_>>())
-    };
+    let total_presses = Int::add(&button_presses);
 
     optimizer.minimize(&total_presses);
 
     match optimizer.check(&[]) {
         SatResult::Sat => {
             let model = optimizer.get_model().unwrap();
-
-            if let Some(total_value) = model.eval(&total_presses, true)
-                && let Some(total) = total_value.as_i64()
-            {
-                return total as u64;
-            }
-
-            // Fallback: manually sum up individual button presses
-            let mut total = 0i64;
-            for button_press in &button_presses {
-                if let Some(value) = model.eval(button_press, true)
-                    && let Some(presses) = value.as_i64()
-                {
-                    total += presses;
-                }
-            }
-            total as u64
+            let total_value = model.eval(&total_presses, true).unwrap();
+            total_value.as_u64().unwrap()
         }
         SatResult::Unsat => {
             println!(
