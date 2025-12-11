@@ -1,3 +1,6 @@
+use z3::ast::Int;
+use z3::{Optimize, SatResult};
+
 advent_of_code::solution!(10);
 
 #[derive(Debug)]
@@ -24,7 +27,102 @@ pub fn part_one(input: &str) -> Option<u64> {
 }
 
 pub fn part_two(input: &str) -> Option<u64> {
-    None
+    let parsed_input = parse(input);
+    let result: u64 = parsed_input
+        .parsed_lines
+        .into_iter()
+        .map(find_minimum_button_presses_z3)
+        .sum();
+
+    Some(result)
+}
+
+fn find_minimum_button_presses_z3(parsed_line: ParsedLine) -> u64 {
+    let ParsedLine {
+        wiring_schematics,
+        joltage_requirements,
+        ..
+    } = parsed_line;
+
+    let optimizer = Optimize::new();
+
+    let num_buttons = wiring_schematics.len();
+
+    let button_presses: Vec<Int> = (0..num_buttons)
+        .map(|i| Int::new_const(format!("button_${i}")))
+        .collect();
+
+    for button_press in &button_presses {
+        optimizer.assert(&button_press.ge(Int::from_i64(0)));
+    }
+
+    for (counter_idx, &target_joltage) in joltage_requirements.iter().enumerate() {
+        let mut counter_sum_terms = Vec::new();
+
+        for (button_idx, wiring) in wiring_schematics.iter().enumerate() {
+            if wiring.contains(&(counter_idx as u64)) {
+                counter_sum_terms.push(&button_presses[button_idx]);
+            }
+        }
+
+        let counter_sum = if counter_sum_terms.is_empty() {
+            Int::from_i64(0)
+        } else if counter_sum_terms.len() == 1 {
+            counter_sum_terms[0].clone()
+        } else {
+            Int::add(&counter_sum_terms.to_vec())
+        };
+
+        let target = Int::from_i64(target_joltage as i64);
+        optimizer.assert(&counter_sum.eq(&target));
+    }
+
+    let total_presses = if button_presses.is_empty() {
+        Int::from_i64(0)
+    } else if button_presses.len() == 1 {
+        button_presses[0].clone()
+    } else {
+        Int::add(&button_presses.iter().collect::<Vec<_>>())
+    };
+
+    optimizer.minimize(&total_presses);
+
+    match optimizer.check(&[]) {
+        SatResult::Sat => {
+            let model = optimizer.get_model().unwrap();
+
+            if let Some(total_value) = model.eval(&total_presses, true)
+                && let Some(total) = total_value.as_i64()
+            {
+                return total as u64;
+            }
+
+            // Fallback: manually sum up individual button presses
+            let mut total = 0i64;
+            for button_press in &button_presses {
+                if let Some(value) = model.eval(button_press, true)
+                    && let Some(presses) = value.as_i64()
+                {
+                    total += presses;
+                }
+            }
+            total as u64
+        }
+        SatResult::Unsat => {
+            println!(
+                "No solution found for joltage requirements: {:?}",
+                joltage_requirements
+            );
+            0
+        }
+        SatResult::Unknown => {
+            println!(
+                "Z3 could not determine satisfiability for requirements: {:?}",
+                joltage_requirements
+            );
+            0
+        }
+    }
 }
 
 fn find_minimum_switches(parsed_line: ParsedLine) -> u32 {
@@ -109,7 +207,7 @@ fn parse_wiring_schematics(line: &str) -> Vec<Vec<u64>> {
 
 fn parse_single_schematic(section: &str) -> Vec<u64> {
     section
-        .trim_start_matches([' ','('])
+        .trim_start_matches([' ', '('])
         .split(',')
         .map(|number_str| number_str.trim().parse().unwrap())
         .collect()
@@ -138,6 +236,6 @@ mod tests {
     #[test]
     fn test_part_two() {
         let result = part_two(&advent_of_code::template::read_file("examples", DAY));
-        assert_eq!(result, None);
+        assert_eq!(result, Some(33));
     }
 }
